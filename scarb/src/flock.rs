@@ -100,6 +100,10 @@ impl AsyncFileLockGuard {
         self.lock_kind
     }
 
+    pub fn into_file(mut self) -> tokio::fs::File {
+        self.file.take().expect("File should exist")
+    }
+
     pub async fn into_sync(mut self) -> FileLockGuard {
         FileLockGuard {
             file: match self.file.take() {
