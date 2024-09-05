@@ -211,11 +211,11 @@ fn list_one_impl(
 
 fn prepare_archive_recipe(pkg: &Package, opts: &PackageOpts) -> Result<ArchiveRecipe> {
     ensure!(
-        pkg.manifest.targets.iter().any(|x| x.is_lib()),
+        pkg.manifest.targets.iter().any(|x| x.is_lib() || x.is_cairo_plugin()),
         formatdoc!(
             r#"
-            cannot archive package `{package_name}` without a `lib` target
-            help: add `[lib]` section to package manifest
+            cannot archive package `{package_name}` without a `lib` or `cairo_plugin` target
+            help: add `[lib]` or `[cairo_plugin]` section to package manifest
              --> Scarb.toml
             +   [lib]
             "#,
@@ -245,6 +245,8 @@ fn prepare_archive_recipe(pkg: &Package, opts: &PackageOpts) -> Result<ArchiveRe
         path: ORIGINAL_MANIFEST_FILE_NAME.into(),
         contents: ArchiveFileContents::OnDisk(pkg.manifest_path().to_owned()),
     });
+
+    // Add Cargo normalized manifest file for plugins
 
     // Add README file
     if let Some(readme) = &pkg.manifest.metadata.readme {
@@ -319,7 +321,7 @@ fn run_verify(
         .block_on(async { PackageSourceStore::extract_to(pkg.id, tar, &fs, ws.config()).await })?;
 
     let ws = ops::read_workspace(&path.join(MANIFEST_FILE_NAME), ws.config())?;
-
+    dbg!("DUPA");
     ops::compile(
         ws.members().map(|p| p.id).collect(),
         ops::CompileOpts {
@@ -330,7 +332,7 @@ fn run_verify(
         },
         &ws,
     )?;
-
+    dbg!("DUPA");
     Ok(lock)
 }
 

@@ -29,18 +29,13 @@ pub fn prepare_manifest_for_publish(pkg: &Package) -> Result<TomlManifest> {
             .collect()
     });
 
-    let cairo_plugin = match pkg.target(&TargetKind::CAIRO_PLUGIN) {
-        None => None,
-        Some(_) => todo!("Packaging Cairo plugins is not implemented yet."),
-    };
-
     Ok(TomlManifest {
         package,
         workspace: None,
         dependencies,
         dev_dependencies: None,
         lib: None,
-        cairo_plugin,
+        cairo_plugin: pkg.target(&TargetKind::CAIRO_PLUGIN).map(|target| target.to_toml_target()),
         test: None,
         target: None,
         cairo: None,
