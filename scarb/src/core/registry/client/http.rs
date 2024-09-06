@@ -1,4 +1,5 @@
 use std::env;
+use std::ops::Deref;
 use std::path::Path;
 use std::str::FromStr;
 use std::time::Duration;
@@ -12,6 +13,7 @@ use reqwest::header::{
 };
 use reqwest::multipart::{Form, Part};
 use reqwest::{Body, Response, StatusCode};
+use tokio::fs::File as TokioFile;
 use tokio::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter};
 use tokio::sync::OnceCell;
@@ -164,7 +166,7 @@ impl<'c> RegistryClient for HttpRegistryClient<'c> {
         let path = tarball.path().to_owned();
         // we need to drop, because windows file locking is very strict
         // drop(tarball);
-        let dupa = tarball.into_async().into_file();
+        let dupa = tarball.into_async();
 
         ensure!(
             Path::new(&path).exists(),
@@ -172,16 +174,9 @@ impl<'c> RegistryClient for HttpRegistryClient<'c> {
             &path
         );
 
-        let metadata = dupa.metadata().await?;
-        ensure!(
-            metadata.len() < 5 * 1024 * 1024,
-            "package cannot be larger than `5` MB: found `{}`",
-            &metadata.len() / 1024 / 1024
-        );
-
         let index_config = self.index_config.load().await?;
 
-        let file_part = Part::stream(Body::from(dupa))
+        let file_part = Part::stream(Body::from(dupa.try_clone().await?))
             .file_name(format!("{}_{}", &package.id.name, &package.id.version));
         let form = Form::new().part("file", file_part);
 
